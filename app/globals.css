@@ -347,3 +347,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 }
 .pay-skeleton span:first-child { height: 64px; }
 .text-input[aria-invalid="true"] { border-color: var(--error); }
+
+/* Uploaded logo in the header */
+.brand-logo { display: block; height: 36px; width: auto; max-width: 180px; object-fit: contain; }
+@media (max-width: 760px) { .brand-logo { height: 30px; max-width: 140px; } }

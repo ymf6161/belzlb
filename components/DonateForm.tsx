@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DONATION_RULES } from "@/config/site";
 import { formatDay, monthlySchedule, money, ordinal, type Method } from "@/lib/donation";
 import { PaymentStep } from "@/components/PaymentStep";
@@ -140,7 +140,11 @@ export function DonateForm({
   }
 
   // Keep the card in view when it switches between the gift and payment steps.
+  // Skipped on page load, so visitors start at the top of the page.
+  const shownStep = useRef(clientSecret);
   useEffect(() => {
+    if (shownStep.current === clientSecret) return;
+    shownStep.current = clientSecret;
     const card = document.getElementById("donate-card");
     if (!card) return;
     const top = card.getBoundingClientRect().top;

@@ -2,6 +2,13 @@ import type { Metadata, Viewport } from "next";
 import { getContent } from "@/lib/storage";
 import "./globals.css";
 
+/** Shown until a favicon is uploaded in the admin panel: the site's lime dot. */
+const DEFAULT_FAVICON =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="#0E0F0C"/><circle cx="16" cy="16" r="8" fill="#CFF06A"/></svg>',
+  );
+
 export async function generateMetadata(): Promise<Metadata> {
   const c = await getContent();
   const description = c.hero.intro;
@@ -9,6 +16,9 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: c.centreName, template: `%s · ${c.centreName}` },
     description,
     openGraph: { title: c.centreName, description, type: "website" },
+    icons: c.branding.favicon
+      ? { icon: c.branding.favicon, apple: c.branding.favicon }
+      : { icon: DEFAULT_FAVICON },
   };
 }
 
