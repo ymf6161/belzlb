@@ -12,6 +12,7 @@ A one-page website with Stripe donations (one-off card payments, monthly Direct 
 | Stripe webhook (fixed-length gifts, Gift Aid records) | `app/api/stripe/webhook/route.ts` |
 | Thank-you page | `app/thank-you/page.tsx` |
 | Admin panel | `app/admin/` at **yourdomain/admin** |
+| Content and photo storage | `lib/storage.ts` (saved on a Railway Volume) |
 | **Bank details and donation rules (fixed in code)** | `config/site.ts` |
 
 ---
@@ -27,14 +28,18 @@ A one-page website with Stripe donations (one-off card payments, monthly Direct 
 1. Create a free account at github.com and a new **private** repository.
 2. Upload the contents of this folder, either with *Add file → Upload files* or with git. Leave out `node_modules` and `.env.local`.
 
-## 3. Deploy on Netlify (free plan is fine)
+## 3. Deploy on Railway (Hobby plan, about $5 a month)
 
-1. Sign up at netlify.com with your GitHub account, then click *Add new site → Import an existing project → GitHub* and pick the repository.
-2. Netlify detects Next.js and fills in the build settings from `netlify.toml`, so leave them as they are.
-3. Before deploying, click *Add environment variables* and add everything in the table below.
-4. Click **Deploy**. The first build takes 2–3 minutes.
+1. In Railway, click **New Project → Deploy from GitHub repo** and pick the repository. Railway detects Next.js and builds it automatically.
+2. **Attach a Volume** (this is where the page content and photos are saved): open the service, right-click it or use the ⌘K menu → *Attach volume*, and set the mount path to **`/data`**. Without a Volume, the admin panel refuses to save, because anything saved would be wiped on the next deploy.
+3. Open the service's **Variables** tab and add everything in the table below.
+4. In **Settings**:
+   - *Networking → Generate Domain*, to get a temporary `…up.railway.app` address for testing.
+   - *Deploy → Healthcheck path*: `/api/health`.
+   - Keep **Replicas at 1**. Volumes don't work with more than one.
+5. Railway redeploys after each change. The first build takes 2–3 minutes. Open the temporary address to check the site works.
 
-You don't need to set up storage: content and photos are saved in **Netlify Blobs**, which is built into every Netlify site.
+Photos uploaded in the admin panel are kept on the Volume and served at `/media/…`. Railway can back the Volume up: in the volume's settings, turn on **Backups**.
 
 ### Environment variables
 
@@ -51,7 +56,9 @@ You don't need to set up storage: content and photos are saved in **Netlify Blob
 
 ## 4. Connect your domain
 
-In Netlify: **Domain management → Add a domain** → enter `yourdomain.org`. Netlify shows the DNS records to add at the company you bought the domain from (usually one A record and one CNAME for `www`), or you can move the domain's DNS to Netlify. It takes from a few minutes to a few hours, and Netlify sets up HTTPS automatically.
+In Railway: service → **Settings → Networking → Custom Domain** → enter `yourdomain.org` (and `www.yourdomain.org` if you want it). Railway shows a CNAME record to add at the company you bought the domain from. For the bare domain without `www`, your DNS provider needs to support CNAME flattening or ALIAS records; Cloudflare's free DNS does. HTTPS is set up automatically once the record is found.
+
+Then update `SITE_URL` in Variables to your real domain.
 
 Add the same domain in **Resend → Domains** and add its DNS records too, so login emails are delivered.
 
@@ -61,7 +68,7 @@ Stripe → Developers → **Webhooks** → *Add endpoint*:
 - URL: `https://yourdomain.org/api/stripe/webhook`
 - Event: `checkout.session.completed`
 
-Copy the **signing secret** (`whsec_…`) into `STRIPE_WEBHOOK_SECRET` in Netlify, then redeploy (*Deploys → Trigger deploy → Deploy site*).
+Copy the **signing secret** (`whsec_…`) into `STRIPE_WEBHOOK_SECRET` in Railway Variables. Railway redeploys automatically.
 
 The webhook handles two things: it ends fixed-length gifts after the chosen number of months, and it saves Gift Aid declarations on the donor's Stripe record.
 
@@ -92,7 +99,7 @@ Gift Aid stays **off** until you switch it on in Admin → Donations, after the 
 
 ## The admin panel
 
-Go to `yourdomain.org/admin`, enter your email, and click the link in the email. Links last 15 minutes, and a login lasts 7 days. To remove someone, take their email out of `ADMIN_EMAILS` in Netlify and redeploy; they're signed out straight away.
+Go to `yourdomain.org/admin`, enter your email, and click the link in the email. Links last 15 minutes, and a login lasts 7 days. To remove someone, take their email out of `ADMIN_EMAILS` in Railway Variables; they're signed out straight away.
 
 Bank details aren't editable here on purpose, so a stolen admin login can't redirect transfers.
 
@@ -104,7 +111,7 @@ cp .env.example .env.local   # fill in test values
 npm run dev                  # http://localhost:3000
 ```
 
-Without `RESEND_API_KEY`, the login link prints in the terminal. Locally, content saves to `data/content.json` and photos to `public/uploads`.
+Without `RESEND_API_KEY`, the login link prints in the terminal. Locally, content saves to `data/content.json` and photos to `data/uploads`.
 
 ## Changing the look
 
