@@ -13,7 +13,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ name: s
       // File names are unique, so browsers can keep them for a year.
       "Cache-Control": "public, max-age=31536000, immutable",
       "X-Content-Type-Options": "nosniff",
-      "Content-Security-Policy": "default-src 'none'",
+      // Images can't run scripts or load anything else, even if opened directly.
+      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
     },
   });
 }

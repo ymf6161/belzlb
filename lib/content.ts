@@ -20,6 +20,14 @@ export type SiteContent = {
   area: string;
   charityNumber: string;
   openingNote: string;
+  branding: {
+    /** Logo shown in the header. */
+    logo: string;
+    /** Hide the centre name next to the logo when the logo already includes it. */
+    logoIncludesName: boolean;
+    /** Small icon shown in the browser tab. */
+    favicon: string;
+  };
   hero: {
     /** Use *asterisks* around words to set them in the italic serif. */
     headline: string;
@@ -56,6 +64,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   area: "[Area]",
   charityNumber: "[NUMBER]",
   openingNote: "Open Monday to Saturday",
+  branding: { logo: "", logoIncludesName: false, favicon: "" },
   hero: {
     headline: "Where the whole neighbourhood *comes together.*",
     intro:
@@ -118,7 +127,7 @@ export function safeImageUrl(v: unknown): string {
   const s = str(v, 600).trim();
   if (!s) return "";
   // Only photos uploaded through the admin panel.
-  return /^\/media\/[0-9]+-[a-f0-9]{12}\.(jpg|png|webp|avif)$/.test(s) ? s : "";
+  return /^\/media\/[0-9]+-[a-f0-9]{12}\.(jpg|png|webp|avif|svg|ico)$/.test(s) ? s : "";
 }
 
 export function safeMapUrl(v: unknown): string {
@@ -152,6 +161,7 @@ export function sanitizeContent(input: unknown, previous: SiteContent): SiteCont
   const about = i.about ?? {};
   const visit = i.visit ?? {};
   const social = i.social ?? {};
+  const branding = i.branding ?? {};
   const donations = i.donations ?? {};
   const list = (v: unknown, max: number) => (Array.isArray(v) ? v.slice(0, max) : []);
 
@@ -160,6 +170,11 @@ export function sanitizeContent(input: unknown, previous: SiteContent): SiteCont
     area: str(i.area, 80),
     charityNumber: str(i.charityNumber, 40),
     openingNote: str(i.openingNote, 80),
+    branding: {
+      logo: safeImageUrl(branding.logo),
+      logoIncludesName: branding.logoIncludesName === true,
+      favicon: safeImageUrl(branding.favicon),
+    },
     hero: {
       headline: str(hero.headline, 140),
       intro: str(hero.intro, 400),
@@ -214,6 +229,7 @@ export function withDefaults(saved: Partial<SiteContent> | null): SiteContent {
     about: { ...DEFAULT_CONTENT.about, ...saved.about },
     visit: { ...DEFAULT_CONTENT.visit, ...saved.visit },
     social: { ...DEFAULT_CONTENT.social, ...saved.social },
+    branding: { ...DEFAULT_CONTENT.branding, ...saved.branding },
     donations: { ...DEFAULT_CONTENT.donations, ...saved.donations },
   };
 }

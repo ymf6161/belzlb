@@ -63,9 +63,14 @@ const IMAGE_TYPES: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
   "image/avif": "avif",
+  "image/svg+xml": "svg",
+  "image/x-icon": "ico",
+  "image/vnd.microsoft.icon": "ico",
 };
-const EXT_TYPES: Record<string, string> = { jpg: "image/jpeg", png: "image/png", webp: "image/webp", avif: "image/avif" };
-export const IMAGE_NAME = /^[0-9]+-[a-f0-9]{12}\.(jpg|png|webp|avif)$/;
+const EXT_TYPES: Record<string, string> = {
+  jpg: "image/jpeg", png: "image/png", webp: "image/webp", avif: "image/avif", svg: "image/svg+xml", ico: "image/x-icon",
+};
+export const IMAGE_NAME = /^[0-9]+-[a-f0-9]{12}\.(jpg|png|webp|avif|svg|ico)$/;
 export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 /** Checks the file really is the image type it claims to be. */
@@ -74,16 +79,31 @@ function looksLike(type: string, b: Buffer): boolean {
   if (type === "image/png") return b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
   if (type === "image/webp") return b.subarray(0, 4).toString() === "RIFF" && b.subarray(8, 12).toString() === "WEBP";
   if (type === "image/avif") return b.subarray(4, 12).toString().startsWith("ftypavi");
+  if (type === "image/x-icon" || type === "image/vnd.microsoft.icon") return b[0] === 0 && b[1] === 0 && b[2] === 1 && b[3] === 0;
+  if (type === "image/svg+xml") return isSafeSvg(b.toString("utf8"));
   return false;
+}
+
+/** SVG files are text and could carry scripts, so only plain drawings are accepted. */
+function isSafeSvg(text: string): boolean {
+  const t = text.replace(/^\uFEFF/, "").trimStart();
+  if (!/^(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE svg[^>]*>\s*)?<svg[\s>]/i.test(t)) return false;
+  return !/<script|<foreignObject|<iframe|<embed|<object|\son[a-z]+\s*=|javascript:|<!ENTITY|xlink:href\s*=\s*["']?\s*(?!#)|\shref\s*=\s*["']?\s*(?!#)/i.test(t);
 }
 
 export async function saveImage(file: File): Promise<string> {
   assertPersistent();
   const ext = IMAGE_TYPES[file.type];
-  if (!ext) throw new Error("Please upload a JPG, PNG, WebP or AVIF image.");
+  if (!ext) throw new Error("Please upload a JPG, PNG, WebP, SVG or ICO image.");
   if (file.size > MAX_UPLOAD_BYTES) throw new Error("Images must be under 4 MB.");
   const data = Buffer.from(await file.arrayBuffer());
-  if (!looksLike(file.type, data)) throw new Error("That file doesn't look like a valid image.");
+  if (!looksLike(file.type, data)) {
+    throw new Error(
+      ext === "svg"
+        ? "That SVG includes scripts, links or embedded images, which aren't allowed for safety. Please upload a PNG instead."
+        : "That file doesn't look like a valid image.",
+    );
+  }
   const name = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
   await fs.mkdir(uploadsDir(), { recursive: true });
   await fs.writeFile(path.join(uploadsDir(), name), data);

@@ -34,7 +34,7 @@ export function Editor({ initial, admin }: { initial: SiteContent; admin: string
   }, [dirty]);
 
   const set = <K extends keyof SiteContent>(key: K, value: SiteContent[K]) => setC((p) => ({ ...p, [key]: value }));
-  const setIn = <K extends "hero" | "about" | "visit" | "social" | "donations">(
+  const setIn = <K extends "hero" | "about" | "visit" | "social" | "donations" | "branding">(
     key: K,
     field: keyof SiteContent[K],
     value: unknown,
@@ -129,6 +129,36 @@ export function Editor({ initial, admin }: { initial: SiteContent; admin: string
               />
               <Field label="Facebook page link" placeholder="https://facebook.com/…" value={c.social.facebook} onChange={(v) => setIn("social", "facebook", v)} max={300} />
               <Field label="Instagram link" placeholder="https://instagram.com/…" value={c.social.instagram} onChange={(v) => setIn("social", "instagram", v)} max={300} />
+            </Section>
+          )}
+          {tab === "general" && (
+            <Section title="Logo & favicon">
+              <ImageField
+                label="Logo"
+                value={c.branding.logo}
+                onChange={(v) => setIn("branding", "logo", v)}
+                hint="Shown at the top of every page. PNG with a transparent background or SVG works best, under 4 MB."
+                accept="image/png,image/svg+xml,image/webp,image/jpeg"
+                fit="contain"
+              />
+              {c.branding.logo && (
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={c.branding.logoIncludesName}
+                    onChange={(e) => setIn("branding", "logoIncludesName", e.target.checked)}
+                  />
+                  <span>My logo already includes the centre’s name (hide the name next to it)</span>
+                </label>
+              )}
+              <ImageField
+                label="Favicon (browser tab icon)"
+                value={c.branding.favicon}
+                onChange={(v) => setIn("branding", "favicon", v)}
+                hint="A small square icon. Use a square PNG of at least 512 × 512 pixels, or an ICO or SVG file."
+                accept="image/png,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.ico"
+                fit="contain"
+              />
             </Section>
           )}
 
@@ -296,7 +326,21 @@ function Field({
   );
 }
 
-function ImageField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function ImageField({
+  label,
+  value,
+  onChange,
+  hint = "JPG, PNG or WebP, under 4 MB. Landscape works best.",
+  accept = "image/jpeg,image/png,image/webp,image/avif",
+  fit = "cover",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  hint?: string;
+  accept?: string;
+  fit?: "cover" | "contain";
+}) {
   const id = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -322,19 +366,19 @@ function ImageField({ label, value, onChange }: { label: string; value: string; 
     <div className="a-field">
       <span className="label">{label}</span>
       <div className="image-field">
-        <div className="thumb">{value ? <img src={value} alt="" /> : <span className="muted small">No image</span>}</div>
+        <div className={`thumb ${fit === "contain" ? "contain" : ""}`}>{value ? <img src={value} alt="" /> : <span className="muted small">No image</span>}</div>
         <div className="image-actions">
           <label htmlFor={id} className="a-btn ghost">{busy ? "Uploading…" : value ? "Replace image" : "Upload image"}</label>
           <input
             id={id}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/avif"
+            accept={accept}
             className="sr-only"
             disabled={busy}
             onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }}
           />
           {value && <button type="button" className="a-link" onClick={() => onChange("")}>Remove</button>}
-          <span className="muted small">JPG, PNG or WebP, under 4 MB. Landscape works best.</span>
+          <span className="muted small">{hint}</span>
           {error && <span className="alert small" role="alert">{error}</span>}
         </div>
       </div>

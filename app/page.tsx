@@ -20,9 +20,14 @@ export default async function Home() {
 
       <header className="header">
         <div className="header-bar">
-          <a href="#top" className="brand">
-            <span className="brand-dot" aria-hidden="true" />
-            {c.centreName}
+          <a href="#top" className="brand" aria-label={c.branding.logo && c.branding.logoIncludesName ? c.centreName : undefined}>
+            {c.branding.logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={c.branding.logo} alt="" className="brand-logo" />
+            ) : (
+              <span className="brand-dot" aria-hidden="true" />
+            )}
+            {!(c.branding.logo && c.branding.logoIncludesName) && c.centreName}
           </a>
           <nav className="nav" aria-label="Main">
             <a href="#about">About</a>
