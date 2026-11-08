@@ -1,13 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DONATION_RULES } from "@/config/site";
 import { formatDay, monthlySchedule, money, ordinal, type Method } from "@/lib/donation";
+import { PaymentStep } from "@/components/PaymentStep";
 
 type Freq = "monthly" | "once";
 type Duration = "ongoing" | "3" | "6" | "12" | "custom";
 
-export function DonateForm({ giftAidEnabled }: { giftAidEnabled: boolean }) {
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+export function DonateForm({
+  giftAidEnabled,
+  publishableKey,
+}: {
+  giftAidEnabled: boolean;
+  publishableKey: string;
+}) {
   const [freq, setFreq] = useState<Freq>("monthly");
   const [preset, setPreset] = useState<number>(DONATION_RULES.defaultMonthly);
   const [custom, setCustom] = useState("");
@@ -19,7 +28,11 @@ export function DonateForm({ giftAidEnabled }: { giftAidEnabled: boolean }) {
   const [gaName, setGaName] = useState("");
   const [gaAddress, setGaAddress] = useState("");
   const [gaPostcode, setGaPostcode] = useState("");
+  const [email, setEmail] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  /** Set once the payment form is ready: the card then shows the payment step. */
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [serverError, setServerError] = useState("");
 
   const monthly = freq === "monthly";
@@ -44,6 +57,7 @@ export function DonateForm({ giftAidEnabled }: { giftAidEnabled: boolean }) {
   const showGiftAid = giftAidEnabled;
   const claimingGiftAid = showGiftAid && giftAid;
   const gaMissing = claimingGiftAid && (!gaName.trim() || !gaAddress.trim() || !gaPostcode.trim());
+  const emailOk = EMAIL_RE.test(email.trim());
 
   let error = "";
   if (custom !== "" && !amountOk)
@@ -51,7 +65,8 @@ export function DonateForm({ giftAidEnabled }: { giftAidEnabled: boolean }) {
   else if (monthly && !monthsOk)
     error = `Enter a number of months between ${DONATION_RULES.minMonths} and ${DONATION_RULES.maxMonths}.`;
   else if (gaMissing) error = "Add your full name, home address and postcode so we can claim Gift Aid.";
-  const blocked = !amountOk || (monthly && !monthsOk) || gaMissing || submitting;
+  else if (emailTouched && !emailOk) error = "Please enter a valid email address.";
+  const blocked = !amountOk || (monthly && !monthsOk) || gaMissing || !emailOk || submitting;
 
   const amtText = amountOk ? money(amount) : "£—";
   const bigText = amountOk ? `£${amount % 1 ? amount.toFixed(2) : amount.toFixed(0)}` : "£—";
@@ -74,13 +89,12 @@ export function DonateForm({ giftAidEnabled }: { giftAidEnabled: boolean }) {
     summaryDetail += ` Plus ${money(amount * 0.25)} Gift Aid${monthly ? " each month" : ""} from HMRC.`;
   }
 
-  const ctaLabel = submitting
-    ? "Opening secure checkout…"
-    : !monthly
-      ? `Donate ${amtText} now`
-      : payMethod === "dd"
-        ? "Set up Direct Debit"
-        : "Continue to card payment";
+  const ctaLabel = submitting ? "Loading secure payment…" : "Continue to payment";
+  const payLabel = !monthly
+    ? `Donate ${amtText}`
+    : payMethod === "dd"
+      ? "Confirm Direct Debit"
+      : `Start my ${amtText} monthly gift`;
 
   function switchFreq(f: Freq) {
     setFreq(f);
@@ -91,7 +105,12 @@ export function DonateForm({ giftAidEnabled }: { giftAidEnabled: boolean }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    setEmailTouched(true);
     if (blocked) return;
+    if (!publishableKey) {
+      setServerError("Online donations aren't set up yet. Please use the bank transfer details below.");
+      return;
+    }
     setSubmitting(true);
     setServerError("");
     try {
@@ -104,22 +123,51 @@ export function DonateForm({ giftAidEnabled }: { giftAidEnabled: boolean }) {
           method: payMethod,
           day,
           months: monthly ? nMonths : null,
+          email: email.trim(),
           giftAid: claimingGiftAid
             ? { name: gaName.trim(), address: gaAddress.trim(), postcode: gaPostcode.trim() }
             : null,
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.url) throw new Error(data.error || "Something went wrong. Please try again.");
-      window.location.assign(data.url);
+      if (!res.ok || !data.clientSecret) throw new Error(data.error || "Something went wrong. Please try again.");
+      setClientSecret(data.clientSecret);
     } catch (err: any) {
       setServerError(err.message || "Something went wrong. Please try again.");
+    } finally {
       setSubmitting(false);
     }
   }
 
+  // Keep the card in view when it switches between the gift and payment steps.
+  useEffect(() => {
+    const card = document.getElementById("donate-card");
+    if (!card) return;
+    const top = card.getBoundingClientRect().top;
+    if (top < 0 || top > window.innerHeight * 0.4) {
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      card.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    }
+  }, [clientSecret]);
+
+  if (clientSecret) {
+    return (
+      <div className="card" id="donate-card">
+        <PaymentStep
+          key={clientSecret}
+          clientSecret={clientSecret}
+          publishableKey={publishableKey}
+          summaryHead={summaryHead}
+          summaryDetail={summaryDetail}
+          ctaLabel={payLabel}
+          onBack={() => setClientSecret(null)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <form className="card rv" onSubmit={submit} noValidate>
+    <form className="card rv" id="donate-card" onSubmit={submit} noValidate>
       <div className="card-stack">
         <div className="seg" role="group" aria-label="How often">
           <span className={`seg-slider ${monthly ? "" : "right"}`} aria-hidden="true" />
@@ -269,6 +317,30 @@ export function DonateForm({ giftAidEnabled }: { giftAidEnabled: boolean }) {
           </div>
         )}
 
+        <div className="field">
+          <label className="legend" htmlFor="donor-email" style={{ marginBottom: 8 }}>
+            {monthly ? "05" : "02"} · Your email
+          </label>
+          <input
+            id="donor-email"
+            type="email"
+            className="text-input"
+            autoComplete="email"
+            inputMode="email"
+            maxLength={200}
+            placeholder="you@example.com"
+            value={email}
+            aria-invalid={emailTouched && !emailOk}
+            onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => setEmailTouched(true)}
+          />
+          <span className="help" style={{ marginTop: 6 }}>
+            {monthly && payMethod === "dd"
+              ? "Stripe emails your Direct Debit confirmation here, plus a reminder before each payment."
+              : "Your receipt is sent here."}
+          </span>
+        </div>
+
         <div className="summary">
           <p><strong>{summaryHead}.</strong> {summaryDetail}</p>
           {(error || serverError) && (
@@ -280,7 +352,7 @@ export function DonateForm({ giftAidEnabled }: { giftAidEnabled: boolean }) {
           </button>
           <p className="secure">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
-            Secure payment by Stripe. Your details never touch our site.
+            Next, enter your payment details securely on this page.
           </p>
         </div>
       </div>

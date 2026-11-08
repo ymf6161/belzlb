@@ -13,6 +13,7 @@ type Body = {
   method?: unknown;
   day?: unknown;
   months?: unknown;
+  email?: unknown;
   giftAid?: { name?: unknown; address?: unknown; postcode?: unknown } | null;
 };
 
@@ -50,6 +51,9 @@ export async function POST(req: Request) {
       return bad(`Choose between ${DONATION_RULES.minMonths} and ${DONATION_RULES.maxMonths} months.`);
   }
 
+  const email = clean(body.email, 200).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return bad("Please enter a valid email address.");
+
   const content = await getContent();
   let giftAid: { name: string; address: string; postcode: string } | null = null;
   if (body.giftAid && content.donations.giftAidEnabled) {
@@ -79,9 +83,12 @@ export async function POST(req: Request) {
   }
 
   const base = siteUrl(req);
+  // ui_mode "elements": the payment fields are shown inside our own donation
+  // card (Stripe's Payment Element) instead of on a separate Stripe page.
   const common = {
-    success_url: `${base}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${base}/#donate`,
+    ui_mode: "elements" as const,
+    return_url: `${base}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
+    customer_email: email,
     locale: "en-GB" as const,
     metadata,
   };
@@ -94,7 +101,6 @@ export async function POST(req: Request) {
       session = await stripe().checkout.sessions.create({
         ...common,
         mode: "payment",
-        submit_type: "donate",
         allowed_payment_method_types: ["card"], // Apple Pay and Google Pay appear automatically with card.
         customer_creation: "always",
         line_items: [
@@ -153,11 +159,12 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ url: session.url });
+    if (!session.client_secret) throw new Error("Stripe returned no client secret");
+    return NextResponse.json({ clientSecret: session.client_secret });
   } catch (err: any) {
     console.error("Checkout error:", err?.message ?? err);
     return NextResponse.json(
-      { error: "We couldn't open the secure checkout just now. Please try again in a moment." },
+      { error: "We couldn't load the secure payment form just now. Please try again in a moment." },
       { status: 502 },
     );
   }

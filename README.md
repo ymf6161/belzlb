@@ -8,7 +8,8 @@ A one-page website with Stripe donations (one-off card payments, monthly Direct 
 |---|---|
 | Landing page | `app/page.tsx`, styles in `app/globals.css` |
 | Donation form | `components/DonateForm.tsx` |
-| Stripe checkout | `app/api/checkout/route.ts` |
+| Payment step (Stripe fields inside the donation card) | `components/PaymentStep.tsx` |
+| Stripe checkout session | `app/api/checkout/route.ts` |
 | Stripe webhook (fixed-length gifts, Gift Aid records) | `app/api/stripe/webhook/route.ts` |
 | Thank-you page | `app/thank-you/page.tsx` |
 | Admin panel | `app/admin/` at **yourdomain/admin** |
@@ -21,6 +22,8 @@ A one-page website with Stripe donations (one-off card payments, monthly Direct 
 
 - **Turn on Bacs Direct Debit in Stripe.** Go to Dashboard → Settings → Payment methods → Bacs Direct Debit → *Turn on*. Stripe asks for extra verification, and this can take a few days.
 - While you're there, make sure **Cards** are on. Apple Pay and Google Pay are on by default.
+- In Stripe → Settings → **Business details**, check the **public business name** is the charity's name. It appears in the Direct Debit mandate and on bank statements.
+- In Stripe → Settings → **Customer emails**, turn on **Successful payments** so donors get a receipt.
 - Put the real **bank details** in `config/site.ts`.
 
 ## 2. Put the code on GitHub
@@ -47,6 +50,7 @@ Photos uploaded in the admin panel are kept on the Volume and served at `/media/
 |---|---|
 | `SITE_URL` | `https://yourdomain.org`, with no slash at the end |
 | `STRIPE_SECRET_KEY` | Stripe → Developers → API keys. Use `sk_test_…` first, then `sk_live_…` |
+| `STRIPE_PUBLISHABLE_KEY` | Same page, the **Publishable key** (`pk_test_…`, later `pk_live_…`). It shows the payment fields inside the donation form. It must come from the same mode as the secret key |
 | `STRIPE_WEBHOOK_SECRET` | From step 5 below |
 | `STRIPE_PORTAL_LOGIN_URL` | Stripe → Settings → Billing → Customer portal → turn on and copy the *login link*. Donors use it to change or cancel |
 | `ADMIN_EMAILS` | The 2–5 admin emails, separated by commas |

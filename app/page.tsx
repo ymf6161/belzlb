@@ -182,7 +182,10 @@ export default async function Home() {
               </ul>
             </div>
             <div className="donate-col">
-              <DonateForm giftAidEnabled={c.donations.giftAidEnabled} />
+              <DonateForm
+                giftAidEnabled={c.donations.giftAidEnabled}
+                publishableKey={process.env.STRIPE_PUBLISHABLE_KEY ?? ""}
+              />
               <BankDetails />
             </div>
           </div>
