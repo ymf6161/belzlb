@@ -4,6 +4,7 @@ import { Media } from "@/components/Media";
 import { Testimonials } from "@/components/Testimonials";
 import { DonateForm } from "@/components/DonateForm";
 import { BankDetails } from "@/components/BankDetails";
+import { Ornament } from "@/components/Ornament";
 
 // Always render with the latest content saved in the admin panel.
 export const dynamic = "force-dynamic";
@@ -20,14 +21,16 @@ export default async function Home() {
 
       <header className="header">
         <div className="header-bar">
-          <a href="#top" className="brand" aria-label={c.branding.logo && c.branding.logoIncludesName ? c.centreName : undefined}>
+          <a href="#top" className="brand" aria-label={c.branding.logo ? c.centreName : undefined}>
             {c.branding.logo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={c.branding.logo} alt="" className="brand-logo" />
             ) : (
               <span className="brand-dot" aria-hidden="true" />
             )}
-            {!(c.branding.logo && c.branding.logoIncludesName) && c.centreName}
+            {!(c.branding.logo && c.branding.logoIncludesName) && (
+              <span className={c.branding.logo ? "brand-text with-logo" : "brand-text"}>{c.centreName}</span>
+            )}
           </a>
           <nav className="nav" aria-label="Main">
             <a href="#about">About</a>
@@ -64,7 +67,7 @@ export default async function Home() {
               </div>
             </div>
           </div>
-          <div className="wrap hero-media" style={{ marginTop: 0 }}>
+          <div className="wrap hero-media">
             <Media
               src={c.hero.image}
               alt={c.hero.imageAlt}
@@ -78,11 +81,11 @@ export default async function Home() {
                 <defs>
                   <path id="circ" d="M66,66 m-48,0 a48,48 0 1,1 96,0 a48,48 0 1,1 -96,0" />
                 </defs>
-                <text style={{ fontFamily: "var(--sans)", fontSize: 11.5, fontWeight: 500, letterSpacing: 3.2, textTransform: "uppercase" }} fill="#0E0F0C">
+                <text style={{ fontFamily: "var(--sans)", fontSize: 11.5, fontWeight: 500, letterSpacing: 3.2, textTransform: "uppercase" }} fill="#3B1D0E">
                   <textPath href="#circ">Give · Gather · Belong · Give · Gather · Belong ·</textPath>
                 </text>
               </svg>
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0E0F0C" strokeWidth="1.6">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#3B1D0E" strokeWidth="1.6">
                 <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />
               </svg>
             </div>
@@ -106,7 +109,7 @@ export default async function Home() {
         <section id="about" className="section">
           <div className="wrap about">
             <div className="about-side rv">
-              <p className="eyebrow">(01) — About us</p>
+              <p className="eyebrow">About us</p>
             </div>
             <div className="about-main">
               <h2 className="rv"><Emphasis text={c.about.headline} /></h2>
@@ -131,7 +134,7 @@ export default async function Home() {
             <div className="wrap">
               <div className="head-row rv">
                 <div>
-                  <p className="eyebrow">(02) — What&apos;s on</p>
+                  <p className="eyebrow">What&apos;s on</p>
                   <h2 className="h2">Every week, <span className="serif">something for everyone</span></h2>
                 </div>
               </div>
@@ -155,7 +158,7 @@ export default async function Home() {
           <section id="stories" className="section">
             <div className="wrap">
               <div className="rv" style={{ marginBottom: 56 }}>
-                <p className="eyebrow">(03) — Stories</p>
+                <p className="eyebrow">Stories</p>
                 <h2 className="h2">Life at <span className="serif">the centre</span></h2>
               </div>
               {c.gallery.length > 0 && (
@@ -174,7 +177,7 @@ export default async function Home() {
         <section id="donate" className="section donate on-dark">
           <div className="wrap donate-grid">
             <div className="donate-intro rv">
-              <p className="eyebrow">(04) — Donate</p>
+              <p className="eyebrow">Donate</p>
               <h2>Help keep <span className="serif">our doors open.</span></h2>
               <p>
                 Every gift pays for the heating, the meals and the activities that bring people together. A regular
@@ -202,7 +205,7 @@ export default async function Home() {
             <div className="visit-card">
               <div className="visit-info rv">
                 <div>
-                  <p className="eyebrow">(05) — Visit</p>
+                  <p className="eyebrow">Visit</p>
                   <h2 className="h2">Come and <span className="serif">say hello</span></h2>
                 </div>
                 <div className="info-grid">
@@ -248,6 +251,7 @@ export default async function Home() {
 
       <footer className="footer on-dark">
         <div className="wrap">
+          <Ornament style={{ paddingTop: 8, marginBottom: 36 }} />
           <div className="footer-mark" aria-hidden="true">
             {nameParts.join(" ")} {lastWord && <span className="serif">{lastWord}</span>}
           </div>

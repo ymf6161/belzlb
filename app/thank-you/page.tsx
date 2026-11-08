@@ -51,7 +51,7 @@ export default async function ThankYou({
       <div className="wrap">
         <div className="thanks-card fade">
           <div className="tick" aria-hidden="true">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0E0F0C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#3B1D0E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
           </div>
           <h1>{title}</h1>
           <p>{body}</p>
